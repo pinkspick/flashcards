@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>汉语 · HSK 5+ Flashcards</title>
+<style>
+  :root{
+    --bg:#f4ecd8;
+    --card:#f3e4cf;
+    --card-inner:#e7d6bd;
+    --ink:#3a3a3a;
+    --muted:#9a9183;
+    --accent:#d96c5f;
+    --red:#e05a4d;
+    --yellow:#f0c020;
+    --green:#5cb85c;
+    --shadow:0 8px 28px rgba(120,90,50,.18);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);
+    display:flex;justify-content:center;
+  }
+  #app{width:100%;max-width:460px;min-height:100vh;display:flex;flex-direction:column;padding:0 18px;position:relative}
+
+  /* top bar */
+  .topbar{display:flex;align-items:center;gap:10px;padding-top:18px;padding-bottom:6px;overflow-x:auto;scrollbar-width:none}
+  .topbar::-webkit-scrollbar{display:none}
+  .icon-btn{background:none;border:none;font-size:22px;color:var(--ink);cursor:pointer;flex:none;padding:4px}
+  .chip{flex:none;border:none;border-radius:24px;padding:11px 20px;font-size:16px;font-weight:600;cursor:pointer;
+        background:#efe2cb;color:#6f675a;display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .chip.active{background:var(--accent);color:#fff}
+
+  /* counter */
+  .counter{text-align:right;margin:10px 4px 2px;font-weight:800}
+  .counter b{color:var(--green);font-size:46px;line-height:1}
+  .counter span{color:var(--muted);font-size:22px;font-weight:700}
+
+  /* word nav (the 忽略 珍贵 着迷 …) */
+  .wordnav{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:6px 2px 14px;
+           overflow:hidden;font-size:18px}
+  .wordnav .wn{color:#c9bfa9;font-weight:600;flex:1;text-align:center;white-space:nowrap}
+  .wordnav .wn.cur{color:var(--ink);font-weight:800;font-size:22px}
+  .wordnav .wn.adj{font-size:19px}
+
+  /* card */
+  .card{background:var(--card);border-radius:30px;box-shadow:var(--shadow);padding:22px 22px 26px;flex:1;
+        display:flex;flex-direction:column;position:relative;margin-bottom:14px;animation:pop .25s ease}
+  @keyframes pop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+  .card-top{display:flex;justify-content:space-between;font-size:24px;color:#6f675a}
+  .card-top button{background:none;border:none;font-size:24px;color:#6f675a;cursor:pointer}
+  .card-top .saved{color:var(--accent)}
+
+  .hanzi{font-size:96px;font-weight:800;text-align:center;color:#7c7468;margin:18px 0 6px;letter-spacing:6px;
+         cursor:pointer;user-select:none}
+  .pinyin{text-align:center;color:var(--muted);font-size:20px;min-height:26px;margin-bottom:4px;letter-spacing:.5px}
+  .meaning{text-align:center;color:#6a6256;font-size:18px;font-weight:600;min-height:24px;margin-bottom:6px;
+           opacity:0;transition:opacity .2s}
+  .meaning.show{opacity:1}
+  .hint{text-align:center;color:#b6ad98;font-size:16px;margin:6px 0 14px}
+
+  .example{background:var(--card-inner);border-radius:20px;padding:18px 18px 14px;margin-top:auto}
+  .example .ex-head{display:flex;justify-content:space-between;align-items:center;color:#6f675a;font-size:17px;font-weight:600;margin-bottom:8px}
+  .example .ex-head button{background:none;border:none;font-size:20px;color:#6f675a;cursor:pointer}
+  .ex-zh{font-size:21px;color:#4a4338;line-height:1.5}
+  .ex-py{font-size:14px;color:var(--muted);margin-top:6px;display:none}
+  .ex-en{font-size:15px;color:#7a7164;margin-top:8px;display:none}
+  .example.open .ex-py,.example.open .ex-en{display:block}
+  .seemore{text-align:right;color:#8a8072;font-size:15px;margin-top:8px;cursor:pointer}
+
+  /* similar words */
+  .similar{background:var(--card-inner);border-radius:20px;padding:16px 18px;margin-top:12px}
+  .similar h3{margin:0 0 10px;font-size:16px;color:#6f675a;display:flex;align-items:center;gap:6px}
+  .simrow{display:flex;gap:10px;padding:9px 0;border-top:1px solid #d8c6aa}
+  .simrow:first-of-type{border-top:none}
+  .simrow .sw{font-size:20px;font-weight:700;color:var(--accent);flex:none;min-width:54px}
+  .simrow .sd{font-size:14.5px;color:#5f574b;line-height:1.45}
+  .simrow .sd .sp{color:var(--muted);font-size:13px}
+  .nosim{color:#b6ad98;font-size:14px}
+
+  /* bottom buttons */
+  .actions{display:flex;gap:10px;padding-bottom:26px}
+  .actions button{flex:1;border:none;border-radius:16px;padding:18px 6px;color:#fff;font-size:17px;font-weight:700;cursor:pointer;
+                  transition:transform .08s}
+  .actions button:active{transform:scale(.95)}
+  .b-red{background:var(--red)}.b-yellow{background:var(--yellow)}.b-green{background:var(--green)}
+
+  /* search overlay */
+  .overlay{position:fixed;inset:0;background:rgba(60,45,25,.45);display:none;align-items:flex-start;justify-content:center;z-index:20}
+  .overlay.show{display:flex}
+  .search-box{background:var(--bg);width:100%;max-width:460px;margin-top:60px;border-radius:20px;padding:16px;max-height:80vh;overflow:auto}
+  .search-box input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #d8c6aa;font-size:17px;background:#fff;color:var(--ink)}
+  .res{padding:12px 6px;border-bottom:1px solid #e2d4bb;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+  .res b{font-size:20px}.res small{color:var(--muted)}
+  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:rgba(50,40,25,.9);color:#fff;
+         padding:10px 18px;border-radius:20px;font-size:15px;opacity:0;transition:opacity .3s;z-index:30;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar" id="deckbar"></div>
+
+  <div class="counter"><b id="learnedCount">0</b><span id="totalCount">/0</span></div>
+
+  <div class="wordnav" id="wordnav"></div>
+
+  <div class="card" id="card"></div>
+
+  <div class="actions">
+    <button class="b-red"    onclick="grade('notyet')">Not Yet</button>
+    <button class="b-green"  onclick="grade('learned')">Learned</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="if(event.target.id==='overlay')closeSearch()">
+  <div class="search-box">
+    <input id="searchInput" placeholder="搜索汉字 / pinyin / English…" oninput="renderSearch(this.value)">
+    <div id="searchResults"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- TONE COLORING ----------------
+   1st=red 2nd=yellow 3rd=green 4th=blue, neutral=gray  */
+const TONE_COLOR={1:'#e0483b',2:'#d39a00',3:'#3aa33a',4:'#2f6fdc',0:'#9a9183'};
+const DIAC={
+  'ā':['a',1],'á':['a',2],'ǎ':['a',3],'à':['a',4],
+  'ē':['e',1],'é':['e',2],'ě':['e',3],'è':['e',4],
+  'ī':['i',1],'í':['i',2],'ǐ':['i',3],'ì':['i',4],
+  'ō':['o',1],'ó':['o',2],'ǒ':['o',3],'ò':['o',4],
+  'ū':['u',1],'ú':['u',2],'ǔ':['u',3],'ù':['u',4],
+  'ǖ':['ü',1],'ǘ':['ü',2],'ǚ':['ü',3],'ǜ':['ü',4],'ü':['ü',0]
+};
+const PY_LETTERS="a-zA-Zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüê";
+const VALID=(()=>{
+  const inits=['','b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w'];
+  const fins=['a','o','e','ê','ai','ei','ao','ou','an','en','ang','eng','ong','er',
+    'i','ia','ie','iao','iu','ian','in','iang','ing','iong',
+    'u','ua','uo','uai','ui','uan','un','uang','ueng',
+    'ü','üe','üan','ün'];
+  const s=new Set();
+  inits.forEach(a=>fins.forEach(b=>s.add(a+b)));
+  return s;
+})();
+// split a run of pinyin letters into syllable [start,end) ranges (greedy longest match)
+function splitSyll(bare){
+  const r=[];let i=0;
+  while(i<bare.length){
+    let m=null;
+    for(let len=Math.min(6,bare.length-i);len>=1;len--){
+      if(VALID.has(bare.substr(i,len))){m=len;break;}
+    }
+    if(!m)m=1;
+    r.push([i,i+m]);i+=m;
+  }
+  return r;
+}
+// turn any pinyin text into HTML with per-syllable tone colors
+function colorPinyin(text){
+  if(!text)return'';
+  return text.replace(new RegExp('['+PY_LETTERS+']+','g'),run=>{
+    let bare='';const tones=[];
+    for(const ch of run){
+      if(DIAC[ch]){bare+=DIAC[ch][0];tones.push(DIAC[ch][1]);}
+      else{bare+=ch.toLowerCase();tones.push(0);}
+    }
+    return splitSyll(bare).map(([a,b])=>{
+      let t=0;for(let k=a;k<b;k++)if(tones[k]){t=tones[k];break;}
+      return `<span style="color:${TONE_COLOR[t]}">${run.slice(a,b)}</span>`;
+    }).join('');
+  });
+}
+
+/* ---------------- DATA: HSK 5+ vocabulary ---------------- */
+/* Each word: hanzi, pinyin, meaning, ex (complex sentence), exPy, exEn, group (similar-word set id) */
+
+const SIMILAR = {
+  yuanben: {
+    title:"原本 · 本来 · 原来",
+    items:[
+      {w:"原本", py:"yuánběn", d:"original state / originally — emphasizes the earlier version of a plan or thing, often followed by a change. 多指事物最初的样子。"},
+      {w:"本来", py:"běnlái", d:"originally / as a matter of fact — neutral 'in the first place'; can also mean 'of course / by rights'（本来就该如此）。"},
+      {w:"原来", py:"yuánlái", d:"so it turns out… / formerly — strong sense of sudden realization (原来如此), or 'the former' situation now changed。"},
+    ]
+  },
+  xiangnian: {
+    title:"想念 · 思念 · 怀念",
+    items:[
+      {w:"想念", py:"xiǎngniàn", d:"to miss (someone/somewhere far away) — everyday, spoken, for people you're apart from。"},
+      {w:"思念", py:"sīniàn", d:"to long for — more literary & emotionally deep, used in writing, lyrics, formal speech。"},
+      {w:"怀念", py:"huáiniàn", d:"to cherish the memory of — for the past, the deceased, bygone times; nostalgic。"},
+    ]
+  },
+  kanfa: {
+    title:"看法 · 意见 · 见解",
+    items:[
+      {w:"看法", py:"kànfǎ", d:"view / opinion — neutral personal view on something。"},
+      {w:"意见", py:"yìjiàn", d:"opinion / objection / complaint — often a suggestion OR dissatisfaction（对…有意见）。"},
+      {w:"见解", py:"jiànjiě", d:"insight / considered viewpoint — implies depth & expertise（独到的见解）。"},
+    ]
+  },
+  turan:{
+    title:"突然 · 忽然",
+    items:[
+      {w:"突然", py:"tūrán", d:"sudden — adjective + adverb; can modify a noun（突然的变化）, used before/after。"},
+      {w:"忽然", py:"hūrán", d:"suddenly — adverb only; describes the manner of an action, cannot modify a noun。"},
+    ]
+  },
+  bixu:{
+    title:"必须 · 必需",
+    items:[
+      {w:"必须", py:"bìxū", d:"must / have to — adverb before a verb（必须完成）。"},
+      {w:"必需", py:"bìxū", d:"essential / indispensable — verb/adj for things（生活必需品）。"},
+    ]
+  },
+  baohan:{
+    title:"包含 · 包括",
+    items:[
+      {w:"包含", py:"bāohán", d:"to contain (abstract) — meaning, emotion, elements 内含其中。"},
+      {w:"包括", py:"bāokuò", d:"to include (listing members) — used when enumerating concrete items（包括A、B、C）。"},
+    ]
+  },
+  chongfen:{
+    title:"充分 · 充足",
+    items:[
+      {w:"充分", py:"chōngfèn", d:"full / ample (abstract) — reasons, preparation, confidence（充分的理由）。"},
+      {w:"充足", py:"chōngzú", d:"sufficient (concrete/quantity) — supply, sunlight, funds, time（资金充足）。"},
+    ]
+  },
+  jingchang:{
+    title:"经常 · 往往 · 时常",
+    items:[
+      {w:"经常", py:"jīngcháng", d:"often / frequently — habitual, can stand alone（经常迟到）。"},
+      {w:"往往", py:"wǎngwǎng", d:"tend to / as a rule — states a regular pattern, needs a condition; not for future/personal wish。"},
+      {w:"时常", py:"shícháng", d:"frequently — like 经常 but slightly more formal/written。"},
+    ]
+  },
+};
+
+const WORDS = [
+  // 原本/本来/原来 group
+  {h:"原本", py:"yuánběn", m:"originally; original version", group:"yuanben",
+   ex:"这部小说原本的结局远比改编后的电影更加耐人寻味。", exPy:"Zhè bù xiǎoshuō yuánběn de jiéjú yuǎn bǐ gǎibiān hòu de diànyǐng gèngjiā nài rén xúnwèi.",
+   exEn:"The novel's original ending is far more thought-provoking than the adapted film's."},
+  {h:"本来", py:"běnlái", m:"originally; in the first place", group:"yuanben",
+   ex:"我本来打算辞职创业，可考虑到家庭责任，最终还是放弃了这个念头。", exPy:"Wǒ běnlái dǎsuàn cízhí chuàngyè, kě kǎolǜ dào jiātíng zérèn, zuìzhōng háishì fàngqìle zhège niàntou.",
+   exEn:"I'd originally planned to quit and start a business, but considering family responsibilities I gave up the idea."},
+  {h:"原来", py:"yuánlái", m:"so it turns out; formerly", group:"yuanben",
+   ex:"听完他的解释，我才恍然大悟，原来这一切都是一场误会。", exPy:"Tīng wán tā de jiěshì, wǒ cái huǎngrán dàwù, yuánlái zhè yíqiè dōu shì yì chǎng wùhuì.",
+   exEn:"After hearing his explanation it suddenly dawned on me that the whole thing had been a misunderstanding."},
+
+  // 想念/思念/怀念
+  {h:"想念", py:"xiǎngniàn", m:"to miss (someone)", group:"xiangnian",
+   ex:"出国求学多年，他无时无刻不想念家乡那碗热腾腾的牛肉面。", exPy:"Chūguó qiúxué duōnián, tā wúshí-wúkè bù xiǎngniàn jiāxiāng nà wǎn rètēngtēng de niúròumiàn.",
+   exEn:"After years studying abroad, he missed his hometown's steaming bowl of beef noodles every single moment."},
+  {h:"思念", py:"sīniàn", m:"to long for (literary)", group:"xiangnian",
+   ex:"每逢佳节，那份对亲人的思念便愈发深切，难以言表。", exPy:"Měi féng jiājié, nà fèn duì qīnrén de sīniàn biàn yùfā shēnqiè, nányǐ yánbiǎo.",
+   exEn:"Every festival, the longing for loved ones grows deeper, beyond words."},
+  {h:"怀念", py:"huáiniàn", m:"to cherish the memory of", group:"xiangnian",
+   ex:"如今生活节奏飞快，我反而格外怀念儿时那段无忧无虑的时光。", exPy:"Rújīn shēnghuó jiézòu fēikuài, wǒ fǎn'ér géwài huáiniàn érshí nà duàn wúyōu-wúlǜ de shíguāng.",
+   exEn:"With life so fast-paced now, I find myself cherishing the carefree days of childhood all the more."},
+
+  // 看法/意见/见解
+  {h:"看法", py:"kànfǎ", m:"view; opinion", group:"kanfa",
+   ex:"对于这项改革方案，专家们的看法并不一致，争论持续了整整一周。", exPy:"Duìyú zhè xiàng gǎigé fāng'àn, zhuānjiāmen de kànfǎ bìng bù yízhì, zhēnglùn chíxùle zhěngzhěng yì zhōu.",
+   exEn:"Experts' views on the reform plan diverged, and the debate lasted a full week."},
+  {h:"意见", py:"yìjiàn", m:"opinion; objection; complaint", group:"kanfa",
+   ex:"会上大家踊跃发言，对管理层的决策提出了不少尖锐的意见。", exPy:"Huì shàng dàjiā yǒngyuè fāyán, duì guǎnlǐcéng de juécè tíchūle bù shǎo jiānruì de yìjiàn.",
+   exEn:"At the meeting people spoke up eagerly, raising many sharp criticisms of management's decisions."},
+  {h:"见解", py:"jiànjiě", m:"insight; considered viewpoint", group:"kanfa",
+   ex:"这位学者对国际局势的见解独到而深刻，常被媒体引用。", exPy:"Zhè wèi xuézhě duì guójì júshì de jiànjiě dúdào ér shēnkè, cháng bèi méitǐ yǐnyòng.",
+   exEn:"This scholar's insights into global affairs are original and profound, often quoted by the media."},
+
+  // 突然/忽然
+  {h:"突然", py:"tūrán", m:"sudden(ly)", group:"turan",
+   ex:"会谈进行得十分顺利，对方却突然改变了立场，令人措手不及。", exPy:"Huìtán jìnxíng de shífēn shùnlì, duìfāng què tūrán gǎibiànle lìchǎng, lìng rén cuòshǒu-bùjí.",
+   exEn:"The talks were going smoothly when the other side suddenly shifted position, catching everyone off guard."},
+  {h:"忽然", py:"hūrán", m:"suddenly", group:"turan",
+   ex:"他正埋头工作，忽然想起今天是母亲的生日。", exPy:"Tā zhèng máitóu gōngzuò, hūrán xiǎngqǐ jīntiān shì mǔqīn de shēngrì.",
+   exEn:"He was buried in work when he suddenly remembered today was his mother's birthday."},
+
+  // 必须/必需
+  {h:"必须", py:"bìxū", m:"must; have to", group:"bixu",
+   ex:"为了如期交付项目，团队必须在周末加班，别无选择。", exPy:"Wèile rúqī jiāofù xiàngmù, tuánduì bìxū zài zhōumò jiābān, bié wú xuǎnzé.",
+   exEn:"To deliver the project on time, the team has to work overtime this weekend — no other choice."},
+  {h:"必需", py:"bìxū", m:"essential; indispensable", group:"bixu",
+   ex:"灾区急需食品、药品等生活必需品，社会各界纷纷伸出援手。", exPy:"Zāiqū jíxū shípǐn, yàopǐn děng shēnghuó bìxūpǐn, shèhuì gèjiè fēnfēn shēnchū yuánshǒu.",
+   exEn:"The disaster zone urgently needs daily necessities like food and medicine; all sectors lent a hand."},
+
+  // 包含/包括
+  {h:"包含", py:"bāohán", m:"to contain (abstract)", group:"baohan",
+   ex:"这句看似平淡的话，实则包含着他多年来的辛酸与无奈。", exPy:"Zhè jù kànsì píngdàn de huà, shízé bāohánzhe tā duōnián lái de xīnsuān yǔ wúnài.",
+   exEn:"This seemingly plain sentence actually contains years of his bitterness and helplessness."},
+  {h:"包括", py:"bāokuò", m:"to include (listing)", group:"baohan",
+   ex:"此次受邀的嘉宾包括学界、商界以及文化界的诸多知名人士。", exPy:"Cǐ cì shòuyāo de jiābīn bāokuò xuéjiè, shāngjiè yǐjí wénhuàjiè de zhūduō zhīmíng rénshì.",
+   exEn:"The invited guests include many notable figures from academia, business, and culture."},
+
+  // 充分/充足
+  {h:"充分", py:"chōngfèn", m:"full; ample (abstract)", group:"chongfen",
+   ex:"只有做好充分的准备，才能在谈判中占据主动。", exPy:"Zhǐyǒu zuò hǎo chōngfèn de zhǔnbèi, cáinéng zài tánpàn zhōng zhànjù zhǔdòng.",
+   exEn:"Only with ample preparation can one take the initiative in negotiations."},
+  {h:"充足", py:"chōngzú", m:"sufficient (quantity)", group:"chongfen",
+   ex:"这片土地光照充足、雨水丰沛，非常适合发展现代农业。", exPy:"Zhè piàn tǔdì guāngzhào chōngzú, yǔshuǐ fēngpèi, fēicháng shìhé fāzhǎn xiàndài nóngyè.",
+   exEn:"This land has abundant sunshine and plentiful rain, ideal for modern agriculture."},
+
+  // 经常/往往/时常
+  {h:"经常", py:"jīngcháng", m:"often; frequently", group:"jingchang",
+   ex:"由于长期作息不规律，他经常感到力不从心。", exPy:"Yóuyú chángqī zuòxī bù guīlǜ, tā jīngcháng gǎndào lì bù cóng xīn.",
+   exEn:"Because of his irregular schedule, he often feels unable to keep up."},
+  {h:"往往", py:"wǎngwǎng", m:"tend to; as a rule", group:"jingchang",
+   ex:"急于求成的人，往往会忽视过程中真正重要的细节。", exPy:"Jíyú-qiúchéng de rén, wǎngwǎng huì hūshì guòchéng zhōng zhēnzhèng zhòngyào de xìjié.",
+   exEn:"Those eager for quick success tend to overlook the details that truly matter along the way."},
+  {h:"时常", py:"shícháng", m:"frequently (formal)", group:"jingchang",
+   ex:"退休之后，老人时常独自坐在窗前，回味往昔的峥嵘岁月。", exPy:"Tuìxiū zhīhòu, lǎorén shícháng dúzì zuò zài chuāng qián, huíwèi wǎngxī de zhēngróng suìyuè.",
+   exEn:"After retiring, the old man frequently sits alone by the window, savoring the eventful years past."},
+
+  // extra standalone HSK 5/6 words (no group)
+  {h:"着迷", py:"zháomí", m:"to be fascinated / captivated", group:null,
+   ex:"自从接触了天文学，这个孩子便对浩瀚的星空彻底着迷了。", exPy:"Zìcóng jiēchùle tiānwénxué, zhège háizi biàn duì hàohàn de xīngkōng chèdǐ zháomíle.",
+   exEn:"Ever since discovering astronomy, the child has been utterly captivated by the vast starry sky."},
+  {h:"耐人寻味", py:"nài rén xún wèi", m:"thought-provoking; worth pondering", group:null,
+   ex:"他临走前留下的那句话耐人寻味，至今仍让我反复琢磨。", exPy:"Tā lín zǒu qián liúxià de nà jù huà nài rén xún wèi, zhìjīn réng ràng wǒ fǎnfù zuómo.",
+   exEn:"The remark he left before leaving was thought-provoking; I still turn it over in my mind."},
+  {h:"潜移默化", py:"qián yí mò huà", m:"to influence imperceptibly", group:null,
+   ex:"良好的家风会在潜移默化中塑造一个人的品格。", exPy:"Liánghǎo de jiāfēng huì zài qián yí mò huà zhōng sùzào yí gè rén de pǐngé.",
+   exEn:"A good family ethos shapes a person's character through subtle, imperceptible influence."},
+  {h:"不言而喻", py:"bù yán ér yù", m:"goes without saying", group:null,
+   ex:"教育对一个国家未来的重要性是不言而喻的。", exPy:"Jiàoyù duì yí gè guójiā wèilái de zhòngyàoxìng shì bù yán ér yù de.",
+   exEn:"The importance of education to a nation's future goes without saying."},
+];
+
+/* ---------------- DECKS ---------------- */
+const DECKS = [
+  {id:"foryou", name:"For You", icon:"⭐", filter:()=>WORDS},
+  {id:"review", name:"Review", icon:"🔁", filter:()=>WORDS.filter(w=>state.grades[w.h]==='notyet')},
+  {id:"groups", name:"近义词 Sets", icon:"🧩", filter:()=>WORDS.filter(w=>w.group)},
+  {id:"saved", name:"Saved", icon:"🔖", filter:()=>WORDS.filter(w=>state.saved[w.h])},
+];
+
+/* ---------------- STATE ---------------- */
+const LS="hsk_flash_v1";
+const saved0=JSON.parse(localStorage.getItem(LS)||"{}");
+const state={
+  deck:"foryou",
+  idx:0,
+  pinyinShown:false,
+  grades: saved0.grades||{},   // hanzi -> learned | notyet
+  saved: saved0.saved||{},     // hanzi -> true
+};
+function persist(){localStorage.setItem(LS,JSON.stringify({grades:state.grades,saved:state.saved}))}
+
+function deckWords(){ const d=DECKS.find(x=>x.id===state.deck); let w=d.filter(); return w.length?w:WORDS; }
+function cur(){ const w=deckWords(); if(state.idx>=w.length)state.idx=0; return w[state.idx]; }
+
+/* ---------------- RENDER ---------------- */
+function renderDeckbar(){
+  const bar=document.getElementById('deckbar');
+  bar.innerHTML =
+    `<button class="icon-btn" title="Stats" onclick="showStats()">👤</button>
+     <button class="icon-btn" title="Search" onclick="openSearch()">🔍</button>` +
+    DECKS.map(d=>`<button class="chip ${d.id===state.deck?'active':''}" onclick="switchDeck('${d.id}')">
+        <span>${d.icon}</span>${d.name}</button>`).join('');
+}
+
+function renderCounter(){
+  const total=WORDS.length;
+  const learned=Object.values(state.grades).filter(g=>g==='learned').length;
+  document.getElementById('learnedCount').textContent=learned;
+  document.getElementById('totalCount').textContent='/'+total;
+}
+
+function renderWordnav(){
+  const w=deckWords(); const i=state.idx;
+  const get=(o)=>{const k=i+o; return (k>=0&&k<w.length)?w[k].h:'';};
+  const nav=document.getElementById('wordnav');
+  const cls=(o)=> o===0?'wn cur': (Math.abs(o)===1?'wn adj':'wn');
+  nav.innerHTML=[-2,-1,0,1,2].map(o=>`<div class="${cls(o)}">${get(o)}</div>`).join('');
+}
+
+function renderCard(){
+  const w=cur(); if(!w){document.getElementById('card').innerHTML="<p style='margin:auto;color:#b6ad98'>No cards in this deck 🎉</p>";return;}
+  state.pinyinShown=false;
+  const isSaved=!!state.saved[w.h];
+  const sim=w.group?SIMILAR[w.group]:null;
+  const simHtml = sim ? `
+    <div class="similar">
+      <h3>🧩 ${sim.title} — 辨析</h3>
+      ${sim.items.map(it=>`
+        <div class="simrow">
+          <div class="sw">${it.w}</div>
+          <div class="sd"><span class="sp">${colorPinyin(it.py)}</span><br>${it.d}</div>
+        </div>`).join('')}
+    </div>` : '';
+
+  document.getElementById('card').innerHTML=`
+    <div class="card-top">
+      <button onclick="toggleSave()" class="${isSaved?'saved':''}">${isSaved?'🔖':'🔖'}</button>
+      <div style="display:flex;gap:14px">
+        <button onclick="spell(\`${w.h}\`)" title="Spell it out">🔤</button>
+        <button onclick="speak(\`${w.h}\`)" title="Say the word">🔊</button>
+      </div>
+    </div>
+    <div class="hanzi" onclick="togglePinyin()">${w.h}</div>
+    <div class="pinyin" id="pinyinLine"></div>
+    <div class="meaning" id="meaningLine">${w.m}</div>
+    <div class="hint" id="hintLine">Tap character for pinyin · 🔤 spells it out · tap example to expand</div>
+
+    <div class="example" id="exampleBox">
+      <div class="ex-head"><span>Example</span><button onclick="event.stopPropagation();speak(\`${w.ex}\`)">🔊</button></div>
+      <div class="ex-zh">${w.ex}</div>
+      <div class="ex-py">${colorPinyin(w.exPy)}</div>
+      <div class="ex-en">${w.exEn}</div>
+      <div class="seemore" id="seemore" onclick="event.stopPropagation();toggleExample()">see more ▾</div>
+    </div>
+
+    ${simHtml}
+  `;
+  // tap anywhere on example toggles
+  document.getElementById('exampleBox').addEventListener('click',toggleExample);
+}
+
+/* ---------------- INTERACTIONS ---------------- */
+function togglePinyin(){
+  const w=cur();
+  state.pinyinShown=!state.pinyinShown;
+  document.getElementById('pinyinLine').innerHTML=state.pinyinShown?colorPinyin(w.py):'';
+  document.getElementById('meaningLine').classList.toggle('show',state.pinyinShown);
+}
+function toggleExample(){
+  const box=document.getElementById('exampleBox');
+  box.classList.toggle('open');
+  document.getElementById('seemore').textContent=box.classList.contains('open')?'see less ▴':'see more ▾';
+}
+function toggleSave(){
+  const w=cur();
+  state.saved[w.h]=!state.saved[w.h];
+  if(!state.saved[w.h])delete state.saved[w.h];
+  persist(); renderCard();
+  toast(state.saved[w.h]?'Saved 🔖':'Removed');
+}
+function grade(g){
+  const w=cur();
+  state.grades[w.h]=g; persist(); renderCounter();
+  if(g==='learned'){ speak(w.h); toast('Learned ✅'); setTimeout(next,650); }
+  else { toast('Not yet 🔴'); next(); }
+}
+function next(){
+  const w=deckWords();
+  state.idx=(state.idx+1)%w.length;
+  renderAll();
+}
+function switchDeck(id){ state.deck=id; state.idx=0; renderAll(); }
+
+function renderAll(){ renderDeckbar(); renderCounter(); renderWordnav(); renderCard(); }
+
+/* ---------------- AUDIO: native Mandarin recordings ----------------
+   Primary: Google's Mandarin voice (real recorded MP3, plays via <audio>).
+   Fallback: device speech-synthesis voice if the network audio fails.   */
+let zhVoice=null;
+function pickVoice(){
+  if(!('speechSynthesis'in window))return;
+  const vs=speechSynthesis.getVoices();
+  zhVoice=vs.find(v=>/zh|Chinese/i.test(v.lang+v.name))||null;
+}
+if('speechSynthesis'in window){ speechSynthesis.onvoiceschanged=pickVoice; pickVoice(); }
+
+// build a native-audio URL for a chunk of Chinese text
+function audioUrl(text){
+  return 'https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-CN&client=tw-ob&q='+encodeURIComponent(text);
+}
+
+let _audio=new Audio();
+let _queue=[];
+function audioStop(){
+  try{_audio.pause();}catch(e){}
+  _queue=[];
+  if('speechSynthesis'in window)speechSynthesis.cancel();
+}
+// play a list of text chunks one after another, using native audio with TTS fallback
+function playSeq(chunks){
+  audioStop();
+  _queue=chunks.slice();
+  _playNext();
+}
+function _playNext(){
+  if(!_queue.length)return;
+  const t=_queue.shift();
+  _audio=new Audio(audioUrl(t));
+  _audio.onended=_playNext;
+  _audio.onerror=()=>_ttsFallback(t,_playNext);
+  _audio.play().catch(()=>_ttsFallback(t,_playNext));
+}
+function _ttsFallback(text,done){
+  if(!('speechSynthesis'in window)){done&&done();return;}
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='zh-CN'; u.rate=.85; if(zhVoice)u.voice=zhVoice;
+  u.onend=()=>done&&done(); u.onerror=()=>done&&done();
+  speechSynthesis.speak(u);
+}
+
+// say the whole word / sentence
+function speak(text){ playSeq([text]); }
+// spell the word out: native pronunciation, character by character
+function spell(text){
+  const chars=[...text.replace(/\s/g,'')];
+  playSeq(chars);
+  toast('🔤 '+chars.join(' '));
+}
+
+/* ---------------- SEARCH ---------------- */
+function openSearch(){document.getElementById('overlay').classList.add('show');document.getElementById('searchInput').focus();renderSearch('');}
+function closeSearch(){document.getElementById('overlay').classList.remove('show');}
+function renderSearch(q){
+  q=q.trim().toLowerCase();
+  const res=WORDS.filter(w=> !q || w.h.includes(q)||w.py.toLowerCase().includes(q)||w.m.toLowerCase().includes(q));
+  document.getElementById('searchResults').innerHTML=res.map(w=>`
+    <div class="res" onclick="jumpTo('${w.h}')">
+      <div><b>${w.h}</b> &nbsp;<small>${colorPinyin(w.py)}</small></div>
+      <small>${w.m}</small>
+    </div>`).join('')||"<p style='color:#b6ad98'>No match</p>";
+}
+function jumpTo(h){
+  state.deck='foryou';
+  state.idx=WORDS.findIndex(w=>w.h===h);
+  closeSearch(); renderAll();
+}
+
+/* ---------------- STATS ---------------- */
+function showStats(){
+  const g=state.grades;
+  const learned=Object.values(g).filter(x=>x==='learned').length;
+  const notyet=Object.values(g).filter(x=>x==='notyet').length;
+  toast(`✅ Learned ${learned}  ·  🔴 Not yet ${notyet}  ·  total ${WORDS.length}`);
+}
+
+/* ---------------- TOAST ---------------- */
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1600);
+}
+
+/* swipe to next/prev */
+let sx=0;
+document.getElementById('card').addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
+document.getElementById('app').addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-sx;
+  if(Math.abs(dx)>70){ if(dx<0)next(); else {const w=deckWords();state.idx=(state.idx-1+w.length)%w.length;renderAll();} }
+});
+
+renderAll();
+</script>
+</body>
+</html>
